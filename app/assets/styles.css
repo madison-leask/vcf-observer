@@ -9,3 +9,7 @@ div.multi-dropdown > div > div {
 .tab:not(.tab--selected):active,
 .button:active
 { background-color: #eaeaea !important; }
+
+pre {
+    font-family: Consolas, Courier, monospace;
+}

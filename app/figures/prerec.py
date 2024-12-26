@@ -85,6 +85,9 @@ def precision_recall_plot(
 
     figure.update_xaxes(range=[0, 1])
     figure.update_yaxes(range=[0, 1])
+    
+    figure.update_xaxes(showline=True)
+    figure.update_yaxes(showline=True)
 
     figure.update_traces(
         hovertemplate='%{customdata[0]}',

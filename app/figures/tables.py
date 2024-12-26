@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 from dash import dash_table
+from version import version
 
 from figures.helpers import _sets_from_files, _extract_single_element_list, _str_to_tuple, _clean_tuple
 
@@ -173,7 +174,7 @@ def variant_df_to_vcf(input_df: pd.DataFrame) -> str:  # Expected columns: 'CHRO
     vcf_lines = [
         '##fileformat=VCFv4.3',
         '##fileDate=' + datetime.now().strftime('%Y%m%d'),
-        '##source=VCFObserver',
+        f'##source=VCFObserverV{version}',
         '#' + '\t'.join(vcf_df.columns)
     ]
 
