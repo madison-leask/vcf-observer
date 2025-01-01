@@ -47,12 +47,15 @@ def read_vcf_files(filenames: list, file_contents: list) -> pd.DataFrame:
         bytesio = BytesIO(data)
 
         if filename[-3:] == '.gz':
-            new_vcf = read_vcf_file(GzipFile(fileobj=bytesio))
+            decompressed_bytesio = GzipFile(fileobj=bytesio)
         elif filename[-4:] == '.zip':
             zipped_vcf = ZipFile(bytesio)
-            new_vcf = read_vcf_file(BytesIO(zipped_vcf.read(zipped_vcf.namelist()[0])))
+            decompressed_bytesio = BytesIO(zipped_vcf.read(zipped_vcf.namelist()[0]))
         else:
-            new_vcf = read_vcf_file(bytesio)
+            decompressed_bytesio = bytesio
+            
+        new_vcf = read_vcf_file(decompressed_bytesio)
+        
         new_vcf['FILENAME'] = filename
         dataframes.append(new_vcf)
 
@@ -115,15 +118,30 @@ def read_csv_files(filenames: list, file_contents: list) -> pd.DataFrame:
 def read_bed_files(filenames: list, file_contents: list) -> pd.DataFrame:
     data = []
     for filename, file_content in zip(filenames, file_contents):
-        data += [
+        bytesio = BytesIO(file_content)
+
+        if filename[-3:] == '.gz':
+            decompressed_bytesio = GzipFile(fileobj=bytesio)
+        elif filename[-4:] == '.zip':
+            zipped_bed = ZipFile(bytesio)
+            decompressed_bytesio = BytesIO(zipped_bed.read(zipped_bed.namelist()[0]))
+        else:
+            decompressed_bytesio = bytesio
+        
+        comment_indicator = None
+        if decompressed_bytesio.read(1)[0] in {'#', '>'}:
+            comment_indicator = file_content[0]
+        decompressed_bytesio.seek(0)
+        data.append(
             pd.read_csv(
-                BytesIO(file_content),
+                decompressed_bytesio,
                 sep='\t',
-                skiprows=1,
+                comment=comment_indicator,
                 names=['CHROM', 'START', 'END'],
                 dtype={'CHROM': 'str', 'START': 'int', 'END': 'int'},
+                usecols=['CHROM', 'START', 'END'],
             )
-        ]
+        )
 
     df = pd.concat(data).reset_index(drop=True)
     df['CHROM'] = df['CHROM'].apply(lambda x: 'chr' + x if x.isdigit() else x)
@@ -140,6 +158,7 @@ def read_local_bed_files(filenames: list) -> pd.DataFrame:
                 comment='#',
                 names=['CHROM', 'START', 'END'],
                 dtype={'CHROM': 'str', 'START': 'int', 'END': 'int'},
+                usecols=['CHROM', 'START', 'END'],
             )
         ]
 
