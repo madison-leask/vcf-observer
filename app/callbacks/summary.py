@@ -6,7 +6,7 @@ from dash_app import app
 from callbacks.helpers import normalize_dropdown_value, placeholder
 from data.retrieval import get_uploaded_data
 from data.file_readers import read_local_bed_files
-from data.cache import set_filename_download_cache, set_metadata_download_cache, set_raw_download_cache
+from data.cache import SessionCache
 from figures.histogram import histogram
 from figures.tables import df_to_table, df_to_csv, grouped_variant_counts
 from layout import ids
@@ -68,7 +68,7 @@ def on_request_filename_summary(
         compare_set_valid, golden_set_valid, regions_valid
 ):
     results = []
-    set_filename_download_cache(session_id, pd.DataFrame())
+    SessionCache(session_id).set_filename_download(pd.DataFrame())
     download_hidden = True
 
     if n_clicks is None:
@@ -134,7 +134,7 @@ def on_request_filename_summary(
         if visualisation_selection == 'table':
             results.append(table)
 
-        set_filename_download_cache(session_id, df)
+        SessionCache(session_id).set_filename_download(df)
 
         download_hidden = False
 
@@ -181,7 +181,7 @@ def on_request_metadata_summary(
         grouping_columns = ['FILENAME']
 
     results = []
-    set_metadata_download_cache(session_id, pd.DataFrame())
+    SessionCache(session_id).set_metadata_download(pd.DataFrame())
     download_hidden = True
 
     if n_clicks is None:
@@ -222,7 +222,7 @@ def on_request_metadata_summary(
                 return_updated_df=True
             )
 
-            set_metadata_download_cache(session_id, df)
+            SessionCache(session_id).set_metadata_download(df)
             download_hidden = False
 
             results.append(table)
@@ -257,7 +257,7 @@ def on_request_raw_summary(
         compare_set_valid, golden_set_valid, metadata_valid, regions_valid,
 ):
     results = []
-    set_raw_download_cache(session_id, pd.DataFrame())
+    SessionCache(session_id).set_raw_download(pd.DataFrame())
     download_hidden = True
 
     if n_clicks is None:
@@ -320,7 +320,7 @@ def on_request_raw_summary(
             results += [html.P(f'Only the first {row_truncate_limit} rows are shown.')]
         table, updated_data = df_to_table(data[:row_truncate_limit], return_updated_df=True)
 
-        set_raw_download_cache(session_id, updated_data)
+        SessionCache(session_id).set_raw_download(updated_data)
         download_hidden = False
 
         results += [merge_reminder, table]

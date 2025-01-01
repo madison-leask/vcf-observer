@@ -15,11 +15,23 @@ BED_dict = {
     'none': 'Genomic regions: None',
     'custom': 'Genomic regions: Custom',
 }
-if not config.bundled_mode:
-    BED_dict = {**BED_dict, **{filename: filename[:-4] for filename in os.listdir('../BED Files') if filename[0] != '.'}}
 
-analyze_tab = (
-    dcc.Tab(label='Analyze', value='tab-analyze', style=styles.tab, selected_style=styles.tab_selected, children=[
+if not config.bundled_mode:
+    BED_dict = {
+        **BED_dict,
+        **{
+            filename: filename[:-4]
+            for filename in os.listdir(config.bed_files_directory)
+            if filename[0] != '.'
+        }
+    }
+
+analyze_tab = dcc.Tab(
+    id=ids.navbar_analyze_analyze__tab__tab, label='Analyze',
+    value='tab-analyze',
+    style=styles.tab,
+    selected_style=styles.tab_selected,
+    children=[
         html.H6('Analysis Type'),
         dcc.RadioItems(
             id=ids.navbar_analyze_analyze__analysis_type__radio_items,
@@ -91,5 +103,5 @@ analyze_tab = (
                 )
             ])
         ])
-    ])
+    ]
 )

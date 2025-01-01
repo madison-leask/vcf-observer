@@ -88,6 +88,9 @@ navbar_analyze_venn__sites_download__download = 'navbar_analyze_venn__sites_down
 
 # navbar/navbar.py
 navbar_navbar__tabs__tabs = 'navbar_navbar__tabs__tabs'
+navbar_welcome__tab__tab = 'navbar_welcome__tab__tab'
+navbar_upload__tab__tab = 'navbar_upload__tab__tab'
+navbar_analyze_analyze__tab__tab = 'navbar_analyze_analyze__tab__tab'
 navbar_navbar__first_visit_for_tabs__store = 'navbar_navbar__first_visit_for_tabs__store'
 navbar_navbar__first_visit_for_buttons__store = 'navbar_navbar__first_visit_for_buttons__store'
 navbar_navbar__session_id__store = 'navbar_navbar__session_id__store'

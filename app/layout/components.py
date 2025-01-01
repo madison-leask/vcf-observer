@@ -1,6 +1,8 @@
 from dash import dcc, html
+import feffery_antd_components as fac
 
 from layout import styles
+import config
 
 
 def button(id_value, text):
@@ -62,3 +64,35 @@ def font_size_selector(id_value, default_value=12, div_id=''):
             )
         ],
     ))
+
+
+def upload_label(label):
+    return html.H6(label)
+
+
+def multi_upload(id_value):
+    return fac.AntdDraggerUpload(
+        id=id_value,
+        locale='en-us',
+        apiUrl=config.url_base + 'upload/',
+        multiple=True,
+        fileListMaxLength=50,
+        showSuccessMessage=False,
+        showErrorMessage=False,
+        showPercent=True,
+        progressProps={'strokeColor': styles.blue},
+        style={
+            'display': 'block',
+            'marginBottom': '1ex',
+            'marginLeft': '10px',
+            'marginRight': '10px'
+        },
+        text=[html.Div(
+            'Upload all files together',
+            style={**styles.div_with_centered_text, 'height': '60px',}
+        )],
+    )
+
+
+def upload_result(id_value):
+    return html.Div(id=id_value, style=styles.file_upload_result)

@@ -1,0 +1,19 @@
+services:
+  vcf_observer:
+    image: itubioinformatics/vcf_observer:0.1.2 # Use prebuilt image
+    # build: . # Build locally
+    ports:
+      - "8050:8050"
+    volumes:
+      - ${VCF_OBSERVER_BED_DIR}:/bed_files
+    depends_on:
+      - redis
+    environment:
+      - VCF_OBSERVER_BED_DIR=/bed_files
+      - VCF_OBSERVER_REDIS_URL=redis://redis:6379/0
+      - VCF_OBSERVER_URL_BASE=${VCF_OBSERVER_URL_BASE}
+  
+  redis:
+    image: redis:alpine
+    expose:
+      - "6379"

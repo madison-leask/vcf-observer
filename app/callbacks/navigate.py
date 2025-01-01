@@ -93,9 +93,6 @@ def button_navigation(upload, analyze, first_visit):
     else:
         selected_tab = 'tab-upload'
 
-        if config.auto_submit:
-            selected_tab = 'tab-analyze'
-
     if upload:
         selected_tab = 'tab-upload'
 

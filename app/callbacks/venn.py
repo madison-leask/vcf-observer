@@ -7,7 +7,7 @@ from dash_app import app
 from figures.venn_figure import venn_diagram
 from callbacks.helpers import normalize_dropdown_value, large_centered_text, placeholder
 from data.retrieval import get_uploaded_data
-from data.cache import set_venn_figure_download_cache, set_venn_sites_download_cache
+from data.cache import SessionCache
 from layout import ids
 
 
@@ -48,7 +48,7 @@ def on_request_venn(
     results = []
     image_data = ''
     download_hidden = True
-    set_venn_figure_download_cache(session_id, '')
+    SessionCache(session_id).set_venn_figure_download('')
 
     if n_clicks is None:
         return placeholder, download_hidden, download_hidden
@@ -93,8 +93,8 @@ def on_request_venn(
             results += [html.Img(src=f'data:image/png;base64,{image_data}')]
 
             download_hidden = False
-            set_venn_figure_download_cache(session_id, image_data)
-            set_venn_sites_download_cache(session_id, intersection_sites)
+            SessionCache(session_id).set_venn_figure_download(image_data)
+            SessionCache(session_id).set_venn_sites_download(intersection_sites)
 
         except ValueError as e:
             results += [large_centered_text(f'{e}')]

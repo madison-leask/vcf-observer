@@ -3,12 +3,7 @@ from dash import html
 
 import data.filtering
 from callbacks.helpers import large_centered_text
-from data.cache import (
-    get_compare_set_cache,
-    get_golden_set_cache,
-    get_metadata_cache,
-    get_regions_cache,
-)
+from data.cache import SessionCache
 from data.filtering import filter_pass, filter_regions, filter_chromosome, filter_variant_type
 
 
@@ -120,7 +115,7 @@ def get_uploaded_compare_set(
 
     if compare_set_valid == 'compare_set_is_valid':
         try:
-            compare_set = get_compare_set_cache(session_id)
+            compare_set = SessionCache(session_id).get_compare_set()
         except LookupError as e:
             invalidity = True
             notice = large_centered_text('Compare set has expired.')
@@ -166,7 +161,7 @@ def get_uploaded_golden_set(
 
     if valid == 'golden_set_is_valid':
         try:
-            golden_set = get_golden_set_cache(session_id)
+            golden_set = SessionCache(session_id).get_golden_set()
         except LookupError as e:
             invalidity = True
             notice = large_centered_text('Golden set has expired.')
@@ -202,7 +197,7 @@ def get_uploaded_metadata(session_id: str, valid: str, placeholder_filenames: li
 
     if valid == 'metadata_is_valid':
         try:
-            metadata = get_metadata_cache(session_id)
+            metadata = SessionCache(session_id).get_metadata()
         except LookupError as e:
             invalidity = True
             notice = large_centered_text('Metadata has expired.')
@@ -225,7 +220,7 @@ def get_uploaded_regions(session_id: str, valid: str) -> (pd.DataFrame, html.H3,
 
     if valid == 'regions_is_valid':
         try:
-            regions = get_regions_cache(session_id)
+            regions = SessionCache(session_id).get_regions()
         except LookupError as e:
             invalidity = True
             notice = large_centered_text('Genomic regions have expired.')

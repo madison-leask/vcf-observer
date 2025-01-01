@@ -4,8 +4,8 @@ import dash_bootstrap_components as dbc
 from layout.navbar.welcome import welcome_tab
 from layout.navbar.upload import upload_tab
 from layout.navbar.analyze.analyze import analyze_tab
+from version import version
 
-import dash_app
 from layout import ids, styles
 
 navbar = (
@@ -16,7 +16,7 @@ navbar = (
             'height': '100vh',
             'paddingLeft': '1em',
             'paddingRight': '1em',
-            'overflowY': 'auto',
+            'overflowY': 'scroll',
             'overflowX': 'hidden',
             'scrollbarWidth': 'thin',
         },
@@ -38,10 +38,11 @@ navbar = (
                         'marginRight': '0.4em',
                         'marginBottom': '12px'
                     }),
-                    'VCF Observer',
+                    html.Span('VCF Observer', style={'whiteSpace': 'nowrap'}),
+                    html.Span(version, style={'fontSize': '8pt', 'marginLeft': '0.8em'})
                 ]),
 
-            dcc.Tabs(id=ids.navbar_navbar__tabs__tabs, value='tab-upload', style={'paddingBottom': '1.5em'}, children=[
+            dcc.Tabs(id=ids.navbar_navbar__tabs__tabs, value='tab-upload', style={'marginBottom': '1.5em'}, children=[
                 welcome_tab,
                 upload_tab,
                 analyze_tab,

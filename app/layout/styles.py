@@ -4,7 +4,7 @@ blue = '#1d7ea8'
 
 button = {
     'backgroundColor': dark_gray,
-    'height': '40px',
+    'minHeight': '40px',
     'lineHeight': '30px',
     'borderWidth': '0',
     'borderRadius': '0.2em',
@@ -83,3 +83,11 @@ dropdown = {
     'marginBottom': '0.8em'
 }
 dropdown_with_related_element_below = {**dropdown, 'marginBottom': '0.4em'}
+div_with_centered_text = {
+    'fontFamily': 'var(--bs-body-font-family)',
+    'fontSize': 'var(--bs-body-font-size)',
+    'fontWeight': 'var(--bs-body-font-weight)',
+    'display': 'flex',
+    'justifyContent': 'center',
+    'alignItems': 'center'
+}

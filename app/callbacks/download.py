@@ -7,7 +7,7 @@ from dash.dependencies import Input, Output, State
 
 from dash_app import app
 from layout import ids
-from data import cache
+from data.cache import SessionCache
 from figures.tables import df_to_csv, variant_df_to_vcf
 
 
@@ -19,7 +19,7 @@ from figures.tables import df_to_csv, variant_df_to_vcf
 )
 def download_venn_figure(n_clicks, session_id):
     if n_clicks:
-        image_data = cache.get_venn_figure_download_cache(session_id)
+        image_data = SessionCache(session_id).get_venn_figure_download()
         return dcc.send_bytes(b64decode(image_data), 'venn.png')
 
 
@@ -31,7 +31,7 @@ def download_venn_figure(n_clicks, session_id):
 )
 def download_venn_sites(n_clicks, session_id):
     if n_clicks:
-        intersection_sites = cache.get_venn_sites_download_cache(session_id)
+        intersection_sites = SessionCache(session_id).get_venn_sites_download()
         vcf = variant_df_to_vcf(intersection_sites)
 
         vcf_gz = BytesIO()
@@ -48,7 +48,7 @@ def download_venn_sites(n_clicks, session_id):
 )
 def download_filename_summary(n_clicks, session_id):
     if n_clicks:
-        data = cache.get_filename_download_cache(session_id)
+        data = SessionCache(session_id).get_filename_download()
         return dcc.send_string(df_to_csv(data), 'summary.csv')
 
 
@@ -60,7 +60,7 @@ def download_filename_summary(n_clicks, session_id):
 )
 def download_metadata_summary(n_clicks, session_id):
     if n_clicks:
-        data = cache.get_metadata_download_cache(session_id)
+        data = SessionCache(session_id).get_metadata_download()
         return dcc.send_string(df_to_csv(data), 'summary.csv')
 
 
@@ -72,5 +72,5 @@ def download_metadata_summary(n_clicks, session_id):
 )
 def download_raw_summary(n_clicks, session_id):
     if n_clicks:
-        data = cache.get_raw_download_cache(session_id)
+        data = SessionCache(session_id).get_raw_download()
         return dcc.send_string(df_to_csv(data), 'summary.csv')

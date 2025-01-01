@@ -21,5 +21,6 @@ app = Dash(
     title='VCF Observer',
     update_title='VCF Observing...',
     external_stylesheets=[dbc.themes.LITERA],
+    url_base_pathname=config.url_base,
     assets_folder=assets_directory
 )
