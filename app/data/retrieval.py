@@ -1,10 +1,9 @@
 import pandas as pd
-from dash import html
 
-import data.filtering
 from callbacks.helpers import large_centered_text
 from data.cache import SessionCache
 from data.filtering import filter_pass, filter_regions, filter_chromosome, filter_variant_type
+from data.file_readers import get_filenames_from_variant_df
 
 
 def get_uploaded_data(
@@ -61,7 +60,7 @@ def get_uploaded_data(
         any_invalidity = any_invalidity or compare_set_invalidity
 
         if compare_set is not None:
-            compare_set_filenames = compare_set['FILENAME'].unique().tolist()
+            compare_set_filenames = get_filenames_from_variant_df(compare_set)
 
     if golden_set_valid:
         (

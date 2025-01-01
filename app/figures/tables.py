@@ -161,12 +161,12 @@ def df_to_csv(df: pd.DataFrame) -> str:
     return csv_str
 
 
-def variant_df_to_vcf(input_df: pd.DataFrame) -> str:  # Expected columns: 'CHROM', 'POS', 'REF', 'ALT', 'FILTER'
-    input_df['FILTER'] = input_df['FILTER_PASS'].apply(lambda filter_value: 'PASS' if filter_value else '.')
-    processed_df = input_df.drop(columns=['FILTER_PASS'])
-
+def variant_df_to_vcf(input_df: pd.DataFrame) -> str:  # Expected columns: 'CHROM', 'POS', 'REF', 'ALT'
+    processed_df = input_df[['CHROM', 'POS', 'REF', 'ALT']]
+    
     processed_df['ID'] = '.'
     processed_df['QUAL'] = '.'
+    processed_df['FILTER'] = '.'
     processed_df['INFO'] = '.'
 
     vcf_df = processed_df[['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO']]

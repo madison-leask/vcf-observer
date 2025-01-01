@@ -4,7 +4,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from venn import pseudovenn, venn
 
-from figures.helpers import _extract_single_element_list, _str_to_tuple, _clean_tuple, _sets_from_files, _intersect_dfs
+from figures.helpers import _extract_single_element_list, _str_to_tuple, _clean_tuple, _sets_from_files, _intersect_series
 
 
 def venn_diagram(
@@ -81,11 +81,10 @@ def venn_diagram(
 
         intersection_df = (
             compare_set
-            .drop_duplicates('KEY')
             .loc[compare_set['KEY'].isin(intersection_set)]
-            .drop(columns=['FILENAME'])
-            .drop(columns=['KEY'])
-            .sort_values(by=['CHROM', 'POS'])
+            .sort_values(by=['CHROM', 'POS'])[
+                ['CHROM', 'POS', 'REF', 'ALT']
+            ]
         )
 
         return _fig_to_png_bytes(venn_figure), intersection_df

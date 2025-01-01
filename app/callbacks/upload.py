@@ -9,7 +9,7 @@ from dash.dependencies import Input, Output, State
 from dash_app import app
 from data.cache import SessionCache
 from data.retrieval import get_uploaded_data
-from data.file_readers import read_csv_files
+from data.file_readers import read_csv_files, get_filenames_from_variant_df
 from layout import ids, styles
 import config
 
@@ -140,7 +140,7 @@ def on_metadata_upload(upload_tasks, compare_set_valid, session_id, current_meta
     if compare_set is None:
         compare_set_filenames = []
     else:
-        compare_set_filenames = compare_set['FILENAME'].unique().tolist()
+        compare_set_filenames = get_filenames_from_variant_df(compare_set)
 
     missing_filenames = []
     metadata = None
@@ -329,10 +329,20 @@ def generate_compare_set_summary_card(compare_set: pd.DataFrame, e: Exception = 
         filenames = ['> Required for analysis.']
         counts = []
     else:
-        files = compare_set.groupby('FILENAME').size().sort_values(ascending=False)
+        filenames = get_filenames_from_variant_df(compare_set)
+        
+        variant_counts = {}
+        for filename in filenames:
+            variant_counts[filename] = compare_set[filename].astype(int).sum()
+        
+        sorted_variant_counts = dict(sorted(
+            variant_counts.items(),
+            key=lambda pair: pair[1],
+            reverse=True
+        ))
 
-        filenames = files.index.tolist()
-        counts = files.tolist()
+        filenames = list(sorted_variant_counts.keys())
+        counts = list(sorted_variant_counts.values())
 
         status = [html.Pre(sum(counts), style={'display': 'inline'}), ' variants loaded.']
 
@@ -351,10 +361,20 @@ def generate_golden_set_summary_card(golden_set: pd.DataFrame, e: Exception = No
         ]
         counts = []
     else:
-        files = golden_set.groupby('FILENAME').size().sort_values(ascending=False)
+        filenames = get_filenames_from_variant_df(golden_set)
+        
+        variant_counts = {}
+        for filename in filenames:
+            variant_counts[filename] = golden_set[filename].astype(int).sum()
+        
+        sorted_variant_counts = dict(sorted(
+            variant_counts.items(),
+            key=lambda pair: pair[1],
+            reverse=True
+        ))
 
-        filenames = files.index.tolist()
-        counts = files.tolist()
+        filenames = list(sorted_variant_counts.keys())
+        counts = list(sorted_variant_counts.values())
 
         status = [html.Pre(sum(counts), style={'display': 'inline'}), ' variants loaded.']
 

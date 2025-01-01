@@ -23,27 +23,44 @@ def read_vcf_file(file: BytesIO) -> pd.DataFrame:
 
     if df is None:
         return pd.DataFrame()
-    else:
-        all_read_columns = df.columns.values
-        unwanted_columns = [
-            column for column in ['ALT_2', 'ALT_3'] if column in all_read_columns
-        ]
+        
+    all_read_columns = df.columns.values
+    unwanted_columns = [
+        column for column in ['ALT_2', 'ALT_3'] if column in all_read_columns
+    ]
 
-        for column in unwanted_columns:
-            df[column] = df[column].fillna('')
-        df['ALT'] = df['ALT_1'].str.cat([df[column] for column in unwanted_columns])
+    for column in unwanted_columns:
+        df[column] = df[column].fillna('')
+    df['ALT'] = df['ALT_1'].str.cat([df[column] for column in unwanted_columns])
 
-        if (~df['FILTER_PASS']).all():
-            df['FILTER_PASS'] = True
+    if (~df['FILTER_PASS']).all():
+        df['FILTER_PASS'] = True
 
-        return df.drop(columns=unwanted_columns + ['ALT_1']).drop_duplicates(
-            ['CHROM', 'POS', 'REF', 'ALT']
-        )
+    variants = (
+        df.drop(columns=unwanted_columns + ['ALT_1'])
+        .drop_duplicates(['CHROM', 'POS', 'REF', 'ALT'])
+    )
+
+    # Generate key
+    vals = variants[['CHROM', 'POS', 'REF', 'ALT']].values
+    keys = ['-'.join([row[0], str(row[1]), row[2], row[3]]) for row in vals]
+    variants['KEY'] = keys
+    
+    return variants
 
 
 def read_vcf_files(filenames: list, file_contents: list) -> pd.DataFrame:
-    dataframes = []
-    for filename, data in zip(filenames, file_contents):
+    sorted_filenames = sorted(filenames)
+    file_content_indices = list(range(len(file_contents)))
+    sorted_file_content_indices = [
+        file_content_index for filename, file_content_index
+        in sorted(zip(filenames, file_content_indices))
+    ]
+    
+    dataframes = {}
+    for i, filename in enumerate(sorted_filenames):
+        data = file_contents[sorted_file_content_indices[i]]
+        
         bytesio = BytesIO(data)
 
         if filename[-3:] == '.gz':
@@ -56,10 +73,9 @@ def read_vcf_files(filenames: list, file_contents: list) -> pd.DataFrame:
             
         new_vcf = read_vcf_file(decompressed_bytesio)
         
-        new_vcf['FILENAME'] = filename
-        dataframes.append(new_vcf)
+        dataframes[filename] = new_vcf
 
-    concat_vcf_files = pd.concat(dataframes).reset_index(drop=True)
+    concat_vcf_files = pd.concat(dataframes.values())
 
     # Normalise chromosome names
     chroms = concat_vcf_files['CHROM'].values
@@ -69,17 +85,31 @@ def read_vcf_files(filenames: list, file_contents: list) -> pd.DataFrame:
         values=normalised_chroms,
         categories=standard_chroms + nonstandard_chroms + ['null_chr'],
     )
-
-    # Generate key
-    vals = concat_vcf_files[['CHROM', 'POS', 'REF', 'ALT']].values
-    keys = ['-'.join([row[0], str(row[1]), row[2], row[3]]) for row in vals]
-    concat_vcf_files['KEY'] = keys
-
-    return (
-        concat_vcf_files.drop_duplicates()
-        .sort_values(by=['FILENAME', 'CHROM', 'POS'])
+    
+    union_of_variants = (
+        concat_vcf_files.drop_duplicates('KEY')
+        .sort_values(by=['CHROM', 'POS'])
         .reset_index(drop=True)
-    )
+    )[['CHROM', 'POS', 'REF', 'ALT', 'KEY']]
+    
+    for filename, file_variants in dataframes.items():
+        union_of_variants[filename] = union_of_variants['KEY'].isin(file_variants['KEY'])
+        union_of_variants[filename+'/PASS'] = (
+            union_of_variants
+            .merge(file_variants, on='KEY', how='left')['FILTER_PASS']
+            .fillna(False)
+        )
+    
+    return union_of_variants
+
+
+def get_filenames_from_variant_df(variant_df: pd.DataFrame) -> list:
+    filenames = []
+    for column_name in variant_df.columns:
+        if (column_name not in {'CHROM', 'POS', 'REF', 'ALT', 'KEY'} and
+            not column_name.endswith('/PASS')):
+            filenames.append(column_name)
+    return filenames
 
 
 standard_chroms = [f'chr{i}' for i in range(1, 22 + 1)]

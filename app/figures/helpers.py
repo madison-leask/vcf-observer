@@ -62,8 +62,8 @@ def _corresponding_labels(
     return return_labels
 
 
-def _intersect_dfs(dfs: list, on=None) -> set:
-    sets = list(map(lambda df: set(df[on]), dfs))
+def _intersect_series(dfs: list) -> set:
+    sets = list(map(lambda df: set(df), dfs))
     return sets[0].intersection(*sets[1:])
 
 
@@ -77,16 +77,16 @@ def _sets_from_files(
     for set_files in sets_files:
         set_variants = []
         for set_file in set_files:
-            set_variants.append(data.loc[data['FILENAME'] == set_file, data.columns != 'FILENAME'])
+            set_variants.append(data.loc[data[set_file], comparing_column])
         sets.append(set_variants)
 
     if grouping_method == 'union':
         for i in range(len(sets)):
-            sets[i] = set(pd.concat(sets[i], ignore_index=True)[comparing_column])
+            sets[i] = set(pd.concat(sets[i], ignore_index=True))
 
     if grouping_method == 'inter':
         for i in range(len(sets)):
-            sets[i] = _intersect_dfs(sets[i], on=comparing_column)
+            sets[i] = _intersect_series(sets[i])
 
     if grouping_method == 'major':
         for i in range(len(sets)):
@@ -98,7 +98,7 @@ def _sets_from_files(
             majority_keys = majority_rows.index.to_list()
 
             sets[i] = set(
-                all_rows[all_rows[comparing_column].isin(majority_keys)][comparing_column]
+                all_rows[all_rows.isin(majority_keys)]
             )
 
     return sets

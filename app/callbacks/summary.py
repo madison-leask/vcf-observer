@@ -5,7 +5,7 @@ from dash.dependencies import Input, Output, State
 from dash_app import app
 from callbacks.helpers import normalize_dropdown_value, placeholder
 from data.retrieval import get_uploaded_data
-from data.file_readers import read_local_bed_files
+from data.file_readers import read_local_bed_files, get_filenames_from_variant_df
 from data.cache import SessionCache
 from figures.histogram import histogram
 from figures.tables import df_to_table, df_to_csv, grouped_variant_counts
@@ -100,15 +100,19 @@ def on_request_filename_summary(
     results += notices
 
     if not any_invalidity:
-        data = data[['FILENAME', 'KEY']]
-        total_count = len(data)
-
-        grouped_data = (
-            data.groupby('FILENAME')
-                .count()
-                .reset_index()
-                .rename(columns={'FILENAME': 'Filename', 'KEY': '# of Variants'})
-        )
+        filenames = get_filenames_from_variant_df(data)
+        
+        variant_counts = [
+            data[filename].astype(int).sum()
+            for filename in filenames
+        ]
+        
+        total_count = sum(variant_counts)
+        
+        grouped_data = pd.DataFrame({
+            'Filename': filenames,
+            '# of Variants': variant_counts,
+        })
 
         if set_selection == 'compare_set':
             title_set_indicator = 'Compare Set'
@@ -280,7 +284,7 @@ def on_request_raw_summary(
             on_chromosome=on_chromosome,
             variant_type=variant_type,
         )
-        if data is not None and data.groupby('FILENAME').ngroups > 1:
+        if data is not None and len(get_filenames_from_variant_df(data)) > 1:
             merge_reminder = html.P('All uploaded VCFs have been merged into a single table.')
 
     if set_selection == 'golden_set':
@@ -289,7 +293,7 @@ def on_request_raw_summary(
             notices,
             any_invalidity
         ) = get_uploaded_data(session_id, golden_set_valid=golden_set_valid)
-        if data is not None and data.groupby('FILENAME').ngroups > 1:
+        if data is not None and len(get_filenames_from_variant_df(data)) > 1:
             merge_reminder = html.P('All uploaded VCFs have been merged into a single table.')
 
     if set_selection == 'metadata':

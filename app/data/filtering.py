@@ -1,10 +1,12 @@
+import os
 from concurrent.futures import ProcessPoolExecutor
 from itertools import repeat
 
 import numpy as np
 import pandas as pd
 
-from data.file_readers import read_local_bed_files
+from data.file_readers import read_local_bed_files, get_filenames_from_variant_df
+import config
 
 
 def _sort_df_by_column(df: pd.DataFrame, column: str) -> pd.DataFrame:
@@ -50,10 +52,17 @@ def _filter_vcf_with_bed_single_chrom(vcf_df: pd.DataFrame, bed_df: pd.DataFrame
 
 
 def filter_pass(df: pd.DataFrame, filter_options: list) -> pd.DataFrame:
-    if 'filter_pass' in filter_options:
-        return df[df['FILTER_PASS']]
-
-    return df
+    if 'filter_pass' not in filter_options:
+        return df
+    
+    filenames = get_filenames_from_variant_df(df)
+    return (df
+            .drop(columns=filenames)
+            .rename(columns={
+                filename + '/PASS': filename
+                for filename in filenames
+            })
+    )
 
 
 def filter_vcf_with_bed(vcf_df: pd.DataFrame, bed_df: pd.DataFrame, outside_regions: bool) -> pd.DataFrame:
@@ -66,9 +75,8 @@ def filter_vcf_with_bed(vcf_df: pd.DataFrame, bed_df: pd.DataFrame, outside_regi
         if chrom in region_groupings.groups:
             current_regions = region_groupings.get_group(chrom)
 
-            for _, variants_of_file in variants.groupby('FILENAME'):
-                to_be_calculated_vcf_dfs.append(variants_of_file)
-                to_be_calculated_bed_dfs.append(current_regions)
+            to_be_calculated_vcf_dfs.append(variants)
+            to_be_calculated_bed_dfs.append(current_regions)
         else:
             if outside_regions:
                 filtered_data.append(variants)
@@ -101,7 +109,7 @@ def filter_regions(
     if genomic_regions in ['custom']:
         bed_df = regions_data
     else:
-        bed_df = read_local_bed_files(['../BED Files/' + genomic_regions])
+        bed_df = read_local_bed_files([os.path.join(config.bed_files_directory, genomic_regions)])
 
     return filter_vcf_with_bed(vcf_df, bed_df, outside_regions)
 
