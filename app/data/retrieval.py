@@ -17,7 +17,7 @@ def get_uploaded_data(
         inside_outside_regions: list = (),
         on_chromosome: str = 'any',
         variant_type: str = 'all',
-) -> (list, list, bool):
+) -> tuple:
     data = []
     notices = []
     any_invalidity = False
@@ -107,7 +107,7 @@ def get_uploaded_compare_set(
         regions_invalidity: bool,
         on_chromosome: str,
         variant_type: str,
-) -> (pd.DataFrame, html.H3, bool):
+) -> tuple:
     compare_set = None
     notice = None
     invalidity = False
@@ -153,7 +153,7 @@ def get_uploaded_golden_set(
         regions_invalidity: bool,
         on_chromosome: str,
         variant_type: str,
-) -> (pd.DataFrame, html.H3, bool):
+) -> tuple:
     golden_set = None
     notice = None
     invalidity = False
@@ -189,7 +189,7 @@ def get_uploaded_golden_set(
     return ordered_filtered_golden_set, notice, invalidity
 
 
-def get_uploaded_metadata(session_id: str, valid: str, placeholder_filenames: list = None) -> (pd.DataFrame, html.H3, bool):
+def get_uploaded_metadata(session_id: str, valid: str, placeholder_filenames: list = None) -> tuple:
     metadata = None
     notice = None
     invalidity = False
@@ -212,7 +212,7 @@ def get_uploaded_metadata(session_id: str, valid: str, placeholder_filenames: li
     return metadata, notice, invalidity
 
 
-def get_uploaded_regions(session_id: str, valid: str) -> (pd.DataFrame, html.H3, bool):
+def get_uploaded_regions(session_id: str, valid: str) -> tuple:
     regions = None
     notice = None
     invalidity = False
