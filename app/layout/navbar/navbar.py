@@ -32,7 +32,7 @@ navbar = (
                     'marginBottom': '0px',
                 },
                 children=[
-                    html.Img(src=get_asset_url('logo.png'), style={
+                    html.Img(src=get_asset_url('logo.svg'), style={
                         'height': '36px',
                         'width': '36px',
                         'marginRight': '0.4em',
