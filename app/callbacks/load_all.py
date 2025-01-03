@@ -6,6 +6,13 @@ from callbacks import (
     session,
     summary,
     test,
-    upload,
     venn,
+)
+from callbacks.upload import (
+    compare_set,
+    components,
+    golden_set,
+    helpers,
+    metadata,
+    regions,
 )

@@ -5,7 +5,7 @@ from itertools import repeat
 import numpy as np
 import pandas as pd
 
-from data.file_readers import read_local_bed_files, get_filenames_from_variant_df
+from data.file_readers import read_local_bed_files, get_filenames_from_variant_df, get_filenames_from_regions_df
 import config
 
 
@@ -107,11 +107,17 @@ def filter_regions(
     outside_regions = inside_outside_regions == 'outside_regions'
 
     if genomic_regions in ['custom']:
-        bed_df = regions_data
+        filenames = get_filenames_from_regions_df(regions_data)
+        
+        filtered_vcf = vcf_df
+        for filename in filenames:
+            regions = regions_data[regions_data[filename]][['CHROM', 'START', 'END']]
+            filtered_vcf = filter_vcf_with_bed(filtered_vcf, regions, outside_regions)
     else:
         bed_df = read_local_bed_files([os.path.join(config.bed_files_directory, genomic_regions)])
-
-    return filter_vcf_with_bed(vcf_df, bed_df, outside_regions)
+        filtered_vcf = filter_vcf_with_bed(vcf_df, bed_df, outside_regions)
+    
+    return filtered_vcf
 
 
 def filter_chromosome(vcf_df: pd.DataFrame, chromosome: str):

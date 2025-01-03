@@ -1,6 +1,6 @@
-from io import BytesIO
-from gzip import GzipFile
-from zipfile import ZipFile
+import io
+from gzip import GzipFile, BadGzipFile
+from zipfile import ZipFile, BadZipFile
 import warnings
 
 import pandas as pd
@@ -8,7 +8,9 @@ import pandas as pd
 import allel
 
 
-def read_vcf_file(file: BytesIO) -> pd.DataFrame:
+def read_vcf_file(filename: str, data: bytes) -> pd.DataFrame:
+    bytesio = get_decompressed_bytesio(data)
+    
     fields = [
         'variants/CHROM',
         'variants/POS',
@@ -19,26 +21,36 @@ def read_vcf_file(file: BytesIO) -> pd.DataFrame:
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
-        df = allel.vcf_to_dataframe(file, fields)
+        df = allel.vcf_to_dataframe(bytesio, fields)
 
     if df is None:
         return pd.DataFrame()
-        
-    all_read_columns = df.columns.values
-    unwanted_columns = [
-        column for column in ['ALT_2', 'ALT_3'] if column in all_read_columns
-    ]
+    
+    df['ALT'] = df['ALT_1']
+    
+    df_alt_2 = df[df['ALT_2'].notna()]
+    df_alt_2['ALT'] = df_alt_2['ALT_2']
+    
+    df_alt_3 = df[df['ALT_3'].notna()]
+    df_alt_3['ALT'] = df_alt_3['ALT_3']
 
-    for column in unwanted_columns:
-        df[column] = df[column].fillna('')
-    df['ALT'] = df['ALT_1'].str.cat([df[column] for column in unwanted_columns])
+    df = pd.concat([df, df_alt_2, df_alt_3])
 
     if (~df['FILTER_PASS']).all():
         df['FILTER_PASS'] = True
 
     variants = (
-        df.drop(columns=unwanted_columns + ['ALT_1'])
+        df.drop(columns=['ALT_1', 'ALT_2', 'ALT_3'])
         .drop_duplicates(['CHROM', 'POS', 'REF', 'ALT'])
+        .reset_index(drop=True)
+    )
+
+    # Normalise chromosome names
+    normalised_chroms = variants['CHROM'].apply(prepend_chr)
+    nonstandard_chroms = list(set(normalised_chroms).difference(standard_chroms))
+    variants['CHROM'] = pd.Categorical(
+        values=normalised_chroms,
+        categories=standard_chroms + nonstandard_chroms,
     )
 
     # Generate key
@@ -49,7 +61,7 @@ def read_vcf_file(file: BytesIO) -> pd.DataFrame:
     return variants
 
 
-def read_vcf_files(filenames: list, file_contents: list) -> pd.DataFrame:
+def merge_variant_data(filenames: list, file_contents: list) -> pd.DataFrame:
     sorted_filenames = sorted(filenames)
     file_content_indices = list(range(len(file_contents)))
     sorted_file_content_indices = [
@@ -61,30 +73,9 @@ def read_vcf_files(filenames: list, file_contents: list) -> pd.DataFrame:
     for i, filename in enumerate(sorted_filenames):
         data = file_contents[sorted_file_content_indices[i]]
         
-        bytesio = BytesIO(data)
-
-        if filename[-3:] == '.gz':
-            decompressed_bytesio = GzipFile(fileobj=bytesio)
-        elif filename[-4:] == '.zip':
-            zipped_vcf = ZipFile(bytesio)
-            decompressed_bytesio = BytesIO(zipped_vcf.read(zipped_vcf.namelist()[0]))
-        else:
-            decompressed_bytesio = bytesio
-            
-        new_vcf = read_vcf_file(decompressed_bytesio)
-        
-        dataframes[filename] = new_vcf
+        dataframes[filename] = data
 
     concat_vcf_files = pd.concat(dataframes.values())
-
-    # Normalise chromosome names
-    chroms = concat_vcf_files['CHROM'].values
-    normalised_chroms = [prepend_chr(chrom) for chrom in chroms]
-    nonstandard_chroms = list(set(normalised_chroms).difference(standard_chroms))
-    concat_vcf_files['CHROM'] = pd.Categorical(
-        values=normalised_chroms,
-        categories=standard_chroms + nonstandard_chroms + ['null_chr'],
-    )
     
     union_of_variants = (
         concat_vcf_files.drop_duplicates('KEY')
@@ -93,7 +84,8 @@ def read_vcf_files(filenames: list, file_contents: list) -> pd.DataFrame:
     )[['CHROM', 'POS', 'REF', 'ALT', 'KEY']]
     
     for filename, file_variants in dataframes.items():
-        union_of_variants[filename] = union_of_variants['KEY'].isin(file_variants['KEY'])
+        file_variants_set = set(file_variants['KEY'])
+        union_of_variants[filename] = union_of_variants['KEY'].isin(file_variants_set)
         union_of_variants[filename+'/PASS'] = (
             union_of_variants
             .merge(file_variants, on='KEY', how='left')['FILTER_PASS']
@@ -112,19 +104,16 @@ def get_filenames_from_variant_df(variant_df: pd.DataFrame) -> list:
     return filenames
 
 
+def get_filenames_from_regions_df(variant_df: pd.DataFrame) -> list:
+    filenames = []
+    for column_name in variant_df.columns:
+        if (column_name not in {'CHROM', 'START', 'END'}):
+            filenames.append(column_name)
+    return filenames
+
+
 standard_chroms = [f'chr{i}' for i in range(1, 22 + 1)]
 standard_chroms += ['chrX', 'chrY', 'chrW', 'chrZ', 'chrM']
-
-
-def extract_chrom(chrom_string: str) -> str:
-    if chrom_string in standard_chroms:
-        return chrom_string
-
-    for valid_chrom in standard_chroms:
-        if valid_chrom in chrom_string:
-            return valid_chrom
-
-    return 'null_chr'
 
 
 def prepend_chr(chrom: str) -> str:
@@ -133,49 +122,52 @@ def prepend_chr(chrom: str) -> str:
     return chrom
 
 
-def read_csv_files(filenames: list, file_contents: list) -> pd.DataFrame:
-    data = []
-    for filename, file_content in zip(filenames, file_contents):
-        data += [pd.read_csv(BytesIO(file_content), dtype=str)]
+def read_csv_file(filename: list, data: list) -> pd.DataFrame:
+    bytesio = get_decompressed_bytesio(data)
     return (
-        pd.concat(data)
-        .drop_duplicates('FILENAME')
+        pd.read_csv(bytesio, dtype=str)
         .dropna(subset=['FILENAME'])
+        .drop_duplicates('FILENAME')
+        .fillna('_NULL_')
+    )
+
+
+def merge_metadata(dfs: list) -> pd.DataFrame:
+    return (
+        pd.concat(dfs)
+        .drop_duplicates('FILENAME')
         .reset_index(drop=True)
     )
 
 
-def read_bed_files(filenames: list, file_contents: list) -> pd.DataFrame:
-    data = []
-    for filename, file_content in zip(filenames, file_contents):
-        bytesio = BytesIO(file_content)
-
-        if filename[-3:] == '.gz':
-            decompressed_bytesio = GzipFile(fileobj=bytesio)
-        elif filename[-4:] == '.zip':
-            zipped_bed = ZipFile(bytesio)
-            decompressed_bytesio = BytesIO(zipped_bed.read(zipped_bed.namelist()[0]))
-        else:
-            decompressed_bytesio = bytesio
-        
-        comment_indicator = None
-        if decompressed_bytesio.read(1)[0] in {'#', '>'}:
-            comment_indicator = file_content[0]
-        decompressed_bytesio.seek(0)
-        data.append(
-            pd.read_csv(
-                decompressed_bytesio,
-                sep='\t',
-                comment=comment_indicator,
-                names=['CHROM', 'START', 'END'],
-                dtype={'CHROM': 'str', 'START': 'int', 'END': 'int'},
-                usecols=['CHROM', 'START', 'END'],
-            )
-        )
-
-    df = pd.concat(data).reset_index(drop=True)
-    df['CHROM'] = df['CHROM'].apply(lambda x: 'chr' + x if x.isdigit() else x)
+def read_bed_file(filename: list, data: bytes) -> pd.DataFrame:
+    bytesio = get_decompressed_bytesio(data)
+    
+    comment_indicator = None
+    if bytesio.read(1)[0] in {'#', '>'}:
+        comment_indicator = bytesio[0]
+    bytesio.seek(0)
+    
+    df = pd.read_csv(
+        bytesio,
+        sep='\t',
+        comment=comment_indicator,
+        names=['CHROM', 'START', 'END'],
+        dtype={'CHROM': 'str', 'START': 'int', 'END': 'int'},
+        usecols=['CHROM', 'START', 'END'],
+    )
+    
+    df['CHROM'] = df['CHROM'].apply(prepend_chr)
+    df[filename] = True
     return df
+
+
+def merge_regions(dfs: list) -> pd.DataFrame:
+    return (
+        pd.concat(dfs)
+        .reset_index(drop=True)
+        .fillna(False)
+    )
 
 
 def read_local_bed_files(filenames: list) -> pd.DataFrame:
@@ -195,3 +187,24 @@ def read_local_bed_files(filenames: list) -> pd.DataFrame:
     df = pd.concat(data).reset_index(drop=True)
     df['CHROM'] = df['CHROM'].apply(lambda x: 'chr' + x if x.isdigit() else x)
     return df
+
+
+def get_decompressed_bytesio(data: bytes) -> io.BufferedIOBase:
+    bytesio = io.BytesIO(data)
+    
+    try:
+        decompressed_bytesio = GzipFile(fileobj=bytesio)
+        decompressed_bytesio.read(1)
+        decompressed_bytesio.seek(0)
+        return decompressed_bytesio
+    except BadGzipFile:
+        bytesio.seek(0)
+    
+    try:
+        zipped_vcf = ZipFile(bytesio)
+        decompressed_bytesio = io.BytesIO(zipped_vcf.read(zipped_vcf.namelist()[0]))
+        return decompressed_bytesio
+    except BadZipFile:
+        bytesio.seek(0)
+    
+    return bytesio

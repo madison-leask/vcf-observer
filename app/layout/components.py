@@ -74,7 +74,7 @@ def multi_upload(id_value):
     return fac.AntdDraggerUpload(
         id=id_value,
         locale='en-us',
-        apiUrl=config.url_base + 'upload/',
+        apiUrl=config.url_base + id_value,
         multiple=True,
         fileListMaxLength=50,
         showSuccessMessage=False,

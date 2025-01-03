@@ -1,8 +1,7 @@
 import os
-import atexit
 import shutil
 
-from data.file_readers import read_vcf_files, read_bed_files
+from data.file_readers import merge_variant_data, merge_regions
 
 import pandas as pd
 from flask_caching import Cache
@@ -63,7 +62,7 @@ class SessionCache:
         self.processed_upload_tasks_cache_key = session_id + '_processed_upload_tasks'
 
     def set_compare_set_as_df(self, filenames: list, file_contents: list) -> pd.DataFrame:
-        data = read_vcf_files(filenames, file_contents)
+        data = merge_variant_data(filenames, file_contents)
         cache.set(self.compare_set_cache_key, data)
         return data
 
@@ -74,7 +73,7 @@ class SessionCache:
         return data
 
     def set_golden_set_as_df(self, filenames: list, file_contents: list) -> pd.DataFrame:
-        data = read_vcf_files(filenames, file_contents)
+        data = merge_variant_data(filenames, file_contents)
         cache.set(self.golden_set_cache_key, data)
         return data
 
@@ -93,8 +92,8 @@ class SessionCache:
             raise LookupError('The cached data has timed out.')
         return data
 
-    def set_regions_as_df(self, filenames: list, file_contents: list) -> pd.DataFrame:
-        data = (read_bed_files(filenames, file_contents)
+    def set_regions_as_df(self, dfs) -> pd.DataFrame:
+        data = (merge_regions(dfs)
                 .sort_values(by=['START', 'END'])
                 .reset_index(drop=True))
         cache.set(self.regions_cache_key, data)
@@ -161,14 +160,14 @@ class SessionCache:
             data = []
         return data
 
-    def set_byte_string_cache(self, key_suffix: str, value: bytes):
+    def set_data_frame(self, key_suffix: str, value: bytes):
         key = self.session_id + key_suffix
         cache.set(key, value)
 
-    def get_byte_string_cache(self, key_suffix) -> bytes:
+    def get_data_frame(self, key_suffix) -> bytes:
         key = self.session_id + key_suffix
         return cache.get(key)
 
-    def delete_byte_string_cache(self, key_suffix: str):
+    def delete_data_frame(self, key_suffix: str):
         key = self.session_id + key_suffix
         cache.delete(key)
