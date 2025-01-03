@@ -77,7 +77,7 @@ analyze_tab = dcc.Tab(
                 dcc.RadioItems(
                     id=ids.navbar_analyze_analyze__inside_outside_regions__radio_items,
                     style={**styles.checklist, 'marginBottom': '0.4em'},
-                    labelStyle={'paddingRight': '1em'},
+                    labelStyle={'paddingRight': '1em', 'display': 'inline-block'},
                     options={
                         'inside_regions': ' Inside of regions',
                         'outside_regions': ' Outside of regions',

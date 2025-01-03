@@ -143,10 +143,12 @@ def merge_metadata(dfs: list) -> pd.DataFrame:
 def read_bed_file(filename: list, data: bytes) -> pd.DataFrame:
     bytesio = get_decompressed_bytesio(data)
     
-    comment_indicator = None
-    if bytesio.read(1)[0] in {'#', '>'}:
-        comment_indicator = bytesio[0]
+    first_char = bytesio.read(1).decode()
     bytesio.seek(0)
+    
+    comment_indicator = None
+    if first_char in {'#', '>'}:
+        comment_indicator = first_char
     
     df = pd.read_csv(
         bytesio,
