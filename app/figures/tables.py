@@ -12,7 +12,7 @@ def df_to_table(
         input_df: pd.DataFrame,
         numeric_index: bool = True,
         return_updated_df: bool = False
-) -> (dash_table.DataTable, pd.DataFrame):
+) -> tuple:
     df = (
         input_df.reset_index()
                 .rename(columns={'index': ''})
@@ -78,7 +78,7 @@ def grouped_variant_counts(
         grouping_method: str,
         pivoting_columns: list = (),
         return_updated_df: bool = False,
-) -> (dash_table.DataTable, pd.DataFrame):
+) -> tuple:
     comparing_column = 'KEY'
     counting_column = '# of Variants'
 

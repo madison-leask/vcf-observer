@@ -7,11 +7,9 @@ import config
 
 
 if config.bundled_mode:
-    app_directory = os.path.abspath(os.path.join(
-        os.path.dirname(os.path.realpath(__file__)),
-        os.pardir,
-        os.pardir
-    ))
+    app_directory = os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.realpath(__file__)
+    )))
     assets_directory = os.path.join(app_directory, 'assets')
 else:
     assets_directory = 'assets'

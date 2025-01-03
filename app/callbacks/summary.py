@@ -1,8 +1,11 @@
+import os
+
 import pandas as pd
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 
 from dash_app import app
+import config
 from callbacks.helpers import normalize_dropdown_value, placeholder
 from data.retrieval import get_uploaded_data
 from data.file_readers import read_local_bed_files, get_filenames_from_variant_df
@@ -313,7 +316,7 @@ def on_request_raw_summary(
 
             results += notices
         else:
-            data = read_local_bed_files(['../BED Files/' + genomic_regions])
+            data = read_local_bed_files([os.path.join(config.bed_files_directory, genomic_regions)])
             any_invalidity = False
 
     results += notices
