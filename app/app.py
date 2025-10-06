@@ -28,4 +28,4 @@ if __name__ == '__main__':
     if config.bundled_mode:
         freeze_support()
         webbrowser.open('http://127.0.0.1:8050')
-    app.run_server(debug=config.debug_mode)
+    app.run(debug=config.debug_mode)
